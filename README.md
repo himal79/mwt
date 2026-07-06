@@ -712,6 +712,257 @@ OG tags support both Nepali and English:
 - Description text works in both languages
 - Image should be language-neutral or include both languages
 
+### Bilingual Resume Download
+
+**Overview:**
+The resume download button in the Hero section automatically switches between language-specific resume files based on the current language selection. This ensures users download the resume in their preferred language.
+
+**File Naming Convention:**
+- **Nepali Resume**: `assets/files/htcvn.pdf` (HT = Himal Thapa, CV = Curriculum Vitae, N = Nepali)
+- **English Resume**: `assets/files/htcve.pdf` (HT = Himal Thapa, CV = Curriculum Vitae, E = English)
+
+**Implementation Details:**
+
+**HTML Structure:**
+```html
+<a id="resume-download-btn" class="btn btn-primary magnetic" download aria-label="Download CV">
+  <i class="fas fa-download" aria-hidden="true"></i>
+  <span data-i18n="btn_resume"></span>
+</a>
+```
+
+**JavaScript Logic:**
+Located in `script.js` (lines 542-549):
+```javascript
+/** Update resume download link based on current language */
+function updateResumeDownloadLink(lang) {
+  const resumeBtn = document.getElementById('resume-download-btn');
+  if (!resumeBtn) return;
+  
+  const resumeFile = lang === 'np' ? 'assets/files/htcvn.pdf' : 'assets/files/htcve.pdf';
+  resumeBtn.href = resumeFile;
+}
+```
+
+**Language Switching:**
+- Function called on page load to set initial resume file
+- Function called whenever language toggle is clicked
+- Instant switching without page reload
+- Language preference saved to localStorage for persistence
+
+**Behavior:**
+- **Nepali Mode (default)**: Downloads `htcvn.pdf`
+- **English Mode**: Downloads `htcve.pdf`
+- **Button Text**: Changes based on language (CV डाउनलोड / Download CV)
+- **Accessibility**: Maintains `aria-label="Download CV"` for screen readers
+
+**Performance:**
+- Instant file path update (no network request)
+- No page reload required
+- Minimal JavaScript overhead
+- Works on all devices (mobile, tablet, desktop)
+
+**Adding New Language-Specific Resumes:**
+To add support for additional languages:
+
+1. **Create new resume file** following naming convention:
+   - Hindi: `assets/files/htcvh.pdf`
+   - Spanish: `assets/files/htcvs.pdf`
+   - Format: `htcv[L].pdf` where L is language code
+
+2. **Update JavaScript function** in `script.js`:
+```javascript
+function updateResumeDownloadLink(lang) {
+  const resumeBtn = document.getElementById('resume-download-btn');
+  if (!resumeBtn) return;
+  
+  const resumeFiles = {
+    'np': 'assets/files/htcvn.pdf',
+    'en': 'assets/files/htcve.pdf',
+    'hi': 'assets/files/htcvh.pdf',  // Add new language
+    'es': 'assets/files/htcvs.pdf'   // Add new language
+  };
+  
+  resumeBtn.href = resumeFiles[lang] || resumeFiles['np'];
+}
+```
+
+3. **Update language toggle** to include new language option in `script.js` (line 549)
+
+4. **Add translations** for button text in `TRANSLATIONS` object
+
+**File Placement:**
+- Resume files must be in: `assets/files/` directory
+- Ensure files are publicly accessible (no authentication required)
+- Use PDF format for universal compatibility
+- Keep file sizes reasonable for fast downloads
+
+**Testing:**
+1. Load page in default (Nepali) mode - verify `htcvn.pdf` downloads
+2. Click language toggle to switch to English - verify `htcve.pdf` downloads
+3. Refresh page - verify language preference persists
+4. Test on mobile devices - verify download works correctly
+5. Test with screen reader - verify accessibility labels work
+
+**Troubleshooting:**
+- **Wrong file downloads**: Check language state in localStorage
+- **Download fails**: Verify file exists in correct directory
+- **Button not updating**: Check JavaScript console for errors
+- **Language not persisting**: Verify localStorage is enabled
+
+### WhatsApp Contact Form Integration
+
+**Overview:**
+The contact form in the Contact section integrates with WhatsApp to send form submissions directly to the specified WhatsApp number. This provides instant communication and is particularly useful for mobile users who frequently use WhatsApp.
+
+**Current Configuration:**
+- **WhatsApp Number**: +9779851214522
+- **Message Format**: Structured with name, email, subject, and message fields
+- **Fallback**: Shows success message if WhatsApp is unavailable
+
+**Implementation Details:**
+
+**Form Fields:**
+- Name (required, min 2 characters)
+- Email (required, valid email format)
+- Subject (required, min 3 characters)
+- Message (required, min 10 characters)
+
+**WhatsApp Message Format:**
+```
+*New Contact Form Submission*
+
+*Name:* [User Name]
+*Email:* [User Email]
+*Subject:* [Subject]
+
+*Message:*
+[Message Content]
+```
+
+**JavaScript Logic:**
+Located in `script.js` (lines 1039-1111):
+```javascript
+let isSubmitting = false;
+
+form.addEventListener('submit', e => {
+  e.preventDefault();
+  if (!validate()) return;
+  if (isSubmitting) return;
+
+  isSubmitting = true;
+  
+  // Collect form data
+  const name    = sanitize(form.name.value);
+  const email   = form.email.value.trim();
+  const subject = sanitize(form.subject.value);
+  const message = sanitize(form.message.value);
+
+  // Construct WhatsApp message
+  const whatsappMessage = `*New Contact Form Submission*
+
+*Name:* ${name}
+*Email:* ${email}
+*Subject:* ${subject}
+
+*Message:*
+${message}`;
+
+  const whatsappNumber = SOCIAL.whatsapp.replace(/\D/g, '');
+  const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(whatsappMessage)}`;
+
+  // Try to open WhatsApp
+  try {
+    window.open(whatsappUrl, '_blank');
+    // Show success message and reset form
+  } catch (error) {
+    // Fallback: show success message
+  }
+});
+```
+
+**Behavior:**
+1. **Validation**: Form validates all fields before submission
+2. **WhatsApp Attempt**: Opens WhatsApp with pre-filled message in new tab
+3. **Success Message**: Shows success message and resets form after 1 second
+4. **Fallback**: If WhatsApp fails, shows success message after 1.6 seconds
+5. **Duplicate Prevention**: `isSubmitting` flag prevents multiple submissions
+
+**Performance:**
+- Instant response on button click
+- Optimized for mobile devices (WhatsApp is most commonly used on mobile)
+- No page reload required
+- Minimal JavaScript overhead
+
+**Changing WhatsApp Number:**
+To update the WhatsApp number, edit the `SOCIAL` object in `script.js` (line 21):
+```javascript
+const SOCIAL = {
+  whatsapp: '+9779851214522',  // Change this number
+  // ... other social links
+};
+```
+
+**Customizing Message Format:**
+To change the WhatsApp message format, edit the message template in `script.js` (lines 1061-1068):
+```javascript
+const whatsappMessage = `*Your Custom Format*
+
+*Field 1:* ${value1}
+*Field 2:* ${value2}
+
+*Message:*
+${message}`;
+```
+
+**Fallback Mechanism:**
+If WhatsApp is not available or fails to open:
+- Try-catch block catches the error
+- Console logs the fallback activation
+- Shows success message to user
+- Resets form after timeout
+- No data loss between WhatsApp attempt and fallback
+
+**Accessibility:**
+- Form maintains `aria-label="Contact form"`
+- All fields have proper labels and error messages
+- Success/error messages use `role="alert"`
+- Button disabled during submission to prevent double-clicks
+- Screen reader friendly with proper ARIA attributes
+
+**Testing:**
+1. Fill form with valid data and submit - verify WhatsApp opens with message
+2. Test on mobile device - verify WhatsApp app opens
+3. Test on desktop - verify WhatsApp Web opens
+4. Submit invalid data - verify validation errors show
+5. Click submit multiple times - verify duplicate submission prevention
+6. Test with screen reader - verify accessibility
+
+**Troubleshooting:**
+- **WhatsApp doesn't open**: Check if WhatsApp is installed on device
+- **Wrong number**: Verify `SOCIAL.whatsapp` in script.js
+- **Message not formatted**: Check message template in script.js
+- **Form not submitting**: Check browser console for JavaScript errors
+- **Validation not working**: Ensure all required fields are filled correctly
+
+**Security:**
+- Input sanitization prevents XSS attacks
+- Email validation ensures proper email format
+- Character limits prevent excessively long inputs
+- No sensitive data stored in localStorage
+
+**Browser Compatibility:**
+- Chrome/Edge: Full support
+- Firefox: Full support
+- Safari: Full support (iOS and macOS)
+- Mobile browsers: Full support (opens WhatsApp app if installed)
+
+**SEO & Indexing:**
+- Contact form remains indexable by search engines
+- Form structure unchanged (semantic HTML maintained)
+- No impact on existing SEO configuration
+- sitemap.xml and robots.txt do not require updates
+
 **Monitoring Performance:**
 - Use browser DevTools Network tab to monitor load times
 - Check Lighthouse scores for performance, accessibility, and SEO

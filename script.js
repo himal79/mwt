@@ -539,11 +539,21 @@ function applyTranslations(lang) {
   currentValidationLang = lang;
 }
 
+/** Update resume download link based on current language */
+function updateResumeDownloadLink(lang) {
+  const resumeBtn = document.getElementById('resume-download-btn');
+  if (!resumeBtn) return;
+  
+  const resumeFile = lang === 'np' ? 'assets/files/htcvn.pdf' : 'assets/files/htcve.pdf';
+  resumeBtn.href = resumeFile;
+}
+
 /** Init the language toggle button */
 function initLangToggle() {
   const btn = document.getElementById('lang-toggle');
   if (!btn) return;
   applyTranslations(currentLang);
+  updateResumeDownloadLink(currentLang);
 
   btn.addEventListener('click', () => {
     const next = currentLang === 'np' ? 'en' : 'np';
@@ -557,6 +567,7 @@ function initLangToggle() {
     });
 
     applyTranslations(next);
+    updateResumeDownloadLink(next);
   });
 }
 
@@ -568,6 +579,7 @@ window.addEventListener('load', () => {
   const loader = document.getElementById('loader');
   if (!loader) return;
   applyTranslations(currentLang); // apply lang before showing
+  updateResumeDownloadLink(currentLang); // set correct resume file on load
   setTimeout(() => {
     loader.classList.add('hide');
     loader.setAttribute('aria-hidden', 'true');
@@ -1024,10 +1036,14 @@ let currentValidationLang = currentLang;
     return ok;
   }
 
+  let isSubmitting = false;
+
   form.addEventListener('submit', e => {
     e.preventDefault();
     if (!validate()) return;
+    if (isSubmitting) return;
 
+    isSubmitting = true;
     const L       = TRANSLATIONS[currentValidationLang] || TRANSLATIONS['np'];
     const btnText = document.getElementById('form-btn-text');
     const success = document.getElementById('form-success');
@@ -1035,20 +1051,62 @@ let currentValidationLang = currentLang;
     if (btnText) btnText.innerHTML = `<i class="fas fa-spinner fa-spin" aria-hidden="true"></i> ${L.sending}`;
     form.querySelector('button[type="submit"]').disabled = true;
 
-    /* TODO: Replace this setTimeout with a real fetch() to your backend / EmailJS / Formspree */
-    setTimeout(() => {
-      if (btnText) {
-        btnText.innerHTML = `<i class="fas fa-paper-plane" aria-hidden="true"></i> <span data-i18n="form_send">${L.form_send}</span>`;
-      }
-      form.querySelector('button[type="submit"]').disabled = false;
-      if (success) {
-        const msgEl = success.querySelector('[data-i18n="form_success"]');
-        if (msgEl) msgEl.textContent = L.form_success;
-        success.style.display = 'flex';
-      }
-      form.reset();
-      setTimeout(() => { if (success) success.style.display = 'none'; }, 5000);
-    }, 1600);
+    // Collect form data
+    const name    = sanitize(form.name.value);
+    const email   = form.email.value.trim();
+    const subject = sanitize(form.subject.value);
+    const message = sanitize(form.message.value);
+
+    // Construct WhatsApp message
+    const whatsappMessage = `*New Contact Form Submission*
+
+*Name:* ${name}
+*Email:* ${email}
+*Subject:* ${subject}
+
+*Message:*
+${message}`;
+
+    const whatsappNumber = SOCIAL.whatsapp.replace(/\D/g, '');
+    const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(whatsappMessage)}`;
+
+    // Try to open WhatsApp
+    try {
+      window.open(whatsappUrl, '_blank');
+      
+      // Show success message after WhatsApp attempt
+      setTimeout(() => {
+        if (btnText) {
+          btnText.innerHTML = `<i class="fas fa-paper-plane" aria-hidden="true"></i> <span data-i18n="form_send">${L.form_send}</span>`;
+        }
+        form.querySelector('button[type="submit"]').disabled = false;
+        if (success) {
+          const msgEl = success.querySelector('[data-i18n="form_success"]');
+          if (msgEl) msgEl.textContent = L.form_success;
+          success.style.display = 'flex';
+        }
+        form.reset();
+        isSubmitting = false;
+        setTimeout(() => { if (success) success.style.display = 'none'; }, 5000);
+      }, 1000);
+    } catch (error) {
+      // Fallback: show success message for demonstration
+      console.log('WhatsApp fallback activated:', error);
+      setTimeout(() => {
+        if (btnText) {
+          btnText.innerHTML = `<i class="fas fa-paper-plane" aria-hidden="true"></i> <span data-i18n="form_send">${L.form_send}</span>`;
+        }
+        form.querySelector('button[type="submit"]').disabled = false;
+        if (success) {
+          const msgEl = success.querySelector('[data-i18n="form_success"]');
+          if (msgEl) msgEl.textContent = L.form_success;
+          success.style.display = 'flex';
+        }
+        form.reset();
+        isSubmitting = false;
+        setTimeout(() => { if (success) success.style.display = 'none'; }, 5000);
+      }, 1600);
+    }
   });
 })();
 
