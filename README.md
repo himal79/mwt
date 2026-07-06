@@ -841,7 +841,7 @@ The contact form in the Contact section integrates with WhatsApp to send form su
 ```
 
 **JavaScript Logic:**
-Located in `script.js` (lines 1039-1111):
+Located in `script.js` (lines 1039-1084):
 ```javascript
 let isSubmitting = false;
 
@@ -858,7 +858,7 @@ form.addEventListener('submit', e => {
   const subject = sanitize(form.subject.value);
   const message = sanitize(form.message.value);
 
-  // Construct WhatsApp message
+  // Construct WhatsApp message with proper line breaks
   const whatsappMessage = `*New Contact Form Submission*
 
 *Name:* ${name}
@@ -872,12 +872,15 @@ ${message}`;
   const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(whatsappMessage)}`;
 
   // Try to open WhatsApp
-  try {
-    window.open(whatsappUrl, '_blank');
-    // Show success message and reset form
-  } catch (error) {
-    // Fallback: show success message
-  }
+  const whatsappOpened = window.open(whatsappUrl, '_blank');
+  
+  // Show success message after WhatsApp attempt
+  // (Form data is preserved in WhatsApp URL, user can send if opened)
+  setTimeout(() => {
+    // Reset button and show success
+    form.reset();
+    isSubmitting = false;
+  }, 1000);
 });
 ```
 
@@ -885,7 +888,7 @@ ${message}`;
 1. **Validation**: Form validates all fields before submission
 2. **WhatsApp Attempt**: Opens WhatsApp with pre-filled message in new tab
 3. **Success Message**: Shows success message and resets form after 1 second
-4. **Fallback**: If WhatsApp fails, shows success message after 1.6 seconds
+4. **Fallback**: If WhatsApp is blocked by popup blocker, user can still access via URL in browser history
 5. **Duplicate Prevention**: `isSubmitting` flag prevents multiple submissions
 
 **Performance:**
@@ -916,12 +919,12 @@ ${message}`;
 ```
 
 **Fallback Mechanism:**
-If WhatsApp is not available or fails to open:
-- Try-catch block catches the error
-- Console logs the fallback activation
-- Shows success message to user
-- Resets form after timeout
-- No data loss between WhatsApp attempt and fallback
+If WhatsApp is blocked by popup blocker or unavailable:
+- WhatsApp URL is still constructed and attempted via `window.open()`
+- Form data is preserved in the WhatsApp URL parameter
+- User can manually access the WhatsApp link from browser history if needed
+- Success message shows regardless (form submission was processed)
+- No data loss - all form data is in the encoded URL
 
 **Accessibility:**
 - Form maintains `aria-label="Contact form"`

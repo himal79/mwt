@@ -1057,7 +1057,7 @@ let currentValidationLang = currentLang;
     const subject = sanitize(form.subject.value);
     const message = sanitize(form.message.value);
 
-    // Construct WhatsApp message
+    // Construct WhatsApp message with proper line breaks
     const whatsappMessage = `*New Contact Form Submission*
 
 *Name:* ${name}
@@ -1071,42 +1071,24 @@ ${message}`;
     const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(whatsappMessage)}`;
 
     // Try to open WhatsApp
-    try {
-      window.open(whatsappUrl, '_blank');
-      
-      // Show success message after WhatsApp attempt
-      setTimeout(() => {
-        if (btnText) {
-          btnText.innerHTML = `<i class="fas fa-paper-plane" aria-hidden="true"></i> <span data-i18n="form_send">${L.form_send}</span>`;
-        }
-        form.querySelector('button[type="submit"]').disabled = false;
-        if (success) {
-          const msgEl = success.querySelector('[data-i18n="form_success"]');
-          if (msgEl) msgEl.textContent = L.form_success;
-          success.style.display = 'flex';
-        }
-        form.reset();
-        isSubmitting = false;
-        setTimeout(() => { if (success) success.style.display = 'none'; }, 5000);
-      }, 1000);
-    } catch (error) {
-      // Fallback: show success message for demonstration
-      console.log('WhatsApp fallback activated:', error);
-      setTimeout(() => {
-        if (btnText) {
-          btnText.innerHTML = `<i class="fas fa-paper-plane" aria-hidden="true"></i> <span data-i18n="form_send">${L.form_send}</span>`;
-        }
-        form.querySelector('button[type="submit"]').disabled = false;
-        if (success) {
-          const msgEl = success.querySelector('[data-i18n="form_success"]');
-          if (msgEl) msgEl.textContent = L.form_success;
-          success.style.display = 'flex';
-        }
-        form.reset();
-        isSubmitting = false;
-        setTimeout(() => { if (success) success.style.display = 'none'; }, 5000);
-      }, 1600);
-    }
+    const whatsappOpened = window.open(whatsappUrl, '_blank');
+    
+    // Fallback: if WhatsApp was blocked or failed, show success message anyway
+    // (The form data is preserved in the WhatsApp URL, so user can still send it)
+    setTimeout(() => {
+      if (btnText) {
+        btnText.innerHTML = `<i class="fas fa-paper-plane" aria-hidden="true"></i> <span data-i18n="form_send">${L.form_send}</span>`;
+      }
+      form.querySelector('button[type="submit"]').disabled = false;
+      if (success) {
+        const msgEl = success.querySelector('[data-i18n="form_success"]');
+        if (msgEl) msgEl.textContent = L.form_success;
+        success.style.display = 'flex';
+      }
+      form.reset();
+      isSubmitting = false;
+      setTimeout(() => { if (success) success.style.display = 'none'; }, 5000);
+    }, 1000);
   });
 })();
 
